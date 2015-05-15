@@ -1,0 +1,22 @@
+extends layout
+
+block content
+  h3 Neutron Details for #{node.uuid}
+  h3
+    a(href=details_url) Back to details page
+
+  each port in ports
+    .panel.panel-default
+      .panel-heading
+        h1.panel-title
+          - if (port.fixed_ips[0])
+            a(data-toggle="collapse" data-parents="#accordion" href="#" + port.id)=port.network_id + " (" + port.fixed_ips[0].ip_address + ")"
+          - else
+            a(data-toggle="collapse" data-parents="#accordion" href="#" + port.id)=port.network_id
+      div(id=port.id).panel-collapse.collapse
+        .panel-body
+          div
+            pre #{JSON.stringify(port, null, 4)}
+
+  h3
+    a(href=details_url) Back to details page

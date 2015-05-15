@@ -1,0 +1,7 @@
+.DS_Store
+config.js
+npm-debug.log
+
+# ignore dev dependencies
+node_modules/eslint
+node_modules/.bin

@@ -1,0 +1,303 @@
+extends layout
+
+block content
+
+  select(name='quick_regions', onChange='window.location="/"+this.value')
+    each _region in regions
+      option(value="#{_region}") #{_region}
+
+  article
+    h3 #{_region}
+    .chart-container
+      .canvas-container
+        canvas.chart(id='pieChart')
+      #pieChartLegend.legend-container
+
+  #graphite.chart
+    .btn-group
+      button.btn.btn-default(onClick='updateGraphiteChart("1hours")') 1 Hour
+      button.btn.btn-default(onClick='updateGraphiteChart("1days")') 1 Day
+      button.btn.btn-default(onClick='updateGraphiteChart("3days")') 3 Days
+      button.btn.btn-default(onClick='updateGraphiteChart("7days")') 7 Days
+
+    img(id='graphite-img')
+
+  .btn-group
+    button.btn.btn-default(onClick='expandAccordion()' style="margin: 10px auto") Expand Accordions
+    button.btn.btn-default(onClick='foldAccordion()' style="margin: 10px auto") Fold Accordions
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id="inactive-panel" data-toggle="collapse" data-parents="#accordion" href="#inactive") Inactive Nodes
+    #inactive.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='inactive-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id="provisioned-panel" data-toggle="collapse" data-parents="#accordion" href="#provisioned") Provisioned Nodes
+    #provisioned.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='provisioned-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id='clean-panel' data-toggle="collapse" data-parents="#accordion" href="#clean") Cleaning Nodes
+    #clean.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='clean-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id='deploying-panel' data-toggle="collapse" data-parents="#accordion" href="#deploying") Deploying Nodes
+    #deploying.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='deploying-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id='maintenance-panel' data-toggle="collapse" data-parents="#accordion" href="#maintenance") Maintenance Nodes
+    #maintenance.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='maintenance-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id="anomalous-panel" data-toggle="collapse" data-parents="#accordion" href="#anomalous") Anomalous Nodes
+    #anomalous.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='anomalous-table' class='dataTable table table-striped')
+
+  .panel.panel-default
+    .panel-heading
+      h1.panel-title
+        a(id="capacity-panel" data-toggle="collapse" data-parents="#accordion" href="#capacity") Capacity
+    #capacity.panel-collapse.collapse
+      .panel-body
+        div
+          table(id='capacity-table' class='dataTable table table-striped')
+
+  script(type='text/javascript').
+    var moods = !{JSON.stringify(moods)},
+      flavors = !{JSON.stringify(flavors)},
+      conf_moods = !{JSON.stringify(conf_moods)},
+      conf_flavors = !{JSON.stringify(conf_flavors)},
+      alerts_url = "#{alerts_url}",
+      graphiteRange = '1days',
+      metricsPrefix = '#{metricsPrefix}',
+      region = '#{region}';
+
+    /**
+     * Builds a URL for the graphite images
+     *
+     * @param {int} width - the width of the image
+     * @param {int} height - the height of the image
+     * @param {int} from - the date range to display data from
+     * @returns {String} - image url
+     */
+    function getMetricsURL(width, height, from) {
+      var colors = [];
+
+      var stub = '#{graphiteEndpoints.render}/?';
+      stub += 'width=' + width;
+      stub += '&height=' + height;
+      stub += '&_salt=' + _.now();
+      stub += '&from=-' + from;
+      stub += '&tz=UTC';
+      stub += '&fgcolor=black';
+      stub += '&bgcolor=white';
+      stub += '&areaMode=stacked';
+
+      var targets = _
+        .map(conf_moods, function (mood) {
+          colors.push(mood.color.substring(1));
+          return mood.name;
+        }).map(function (mood) {
+          return '&target=' + ('alias(movingAverage(sumSeries(' + metricsPrefix + '.' + region + '.*.' + mood + '),10),"' + mood + '")');
+        });
+
+      stub += '&colorList=' + colors.join(',');
+
+      return stub + targets.join('');
+    }
+
+    function updateGraphiteChart(from) {
+      graphiteRange = from;
+      $('#graphite-img').attr('src', getMetricsURL(1000, 450, from));
+    }
+
+    $(function () {
+      $('select[name="quick_regions"]').val(region);
+
+      drawPieChart(moods, flavors, conf_moods, conf_flavors);
+
+      if ('#{graphiteEndpoints.render}'.length > 0) {
+        updateGraphiteChart(graphiteRange);
+        setInterval(function () { updateGraphiteChart(graphiteRange); }, 60000);
+      } else {
+        $('#graphite').hide();
+      }
+
+      var clipboard = new ZeroClipboard();
+
+      // create inactive nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/inactive.json',
+        clipboard: clipboard,
+        copyCols: [0],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Flavor': { data: 'flavor' },
+          'Power State': { data: 'power_state' },
+          'Provision State': { data: 'provision_state' }
+        },
+        el: '#inactive-table',
+        panel: $('#inactive-panel'),
+        title: 'Inactive Nodes',
+        sortCols: [3, 'asc'],
+        styles: {
+          0: 'ellip uuid'
+        }
+      });
+
+      // create provisioned nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/provisioned.json',
+        clipboard: clipboard,
+        copyCols: [0, 1],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Instance UUID': { data: 'instance_uuid' },
+          'Flavor': { data: 'flavor' },
+          'Power State': { data: 'power_state' },
+          'Provision State': { data: 'provision_state' }
+        },
+        el: '#provisioned-table',
+        panel: $('#provisioned-panel'),
+        title: 'Provisioned Nodes',
+        sortCols: [4, 'asc'],
+        styles: {
+          0: 'ellip uuid',
+          1: 'ellip uuid'
+        }
+      });
+
+      // create clean nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/clean.json',
+        clipboard: clipboard,
+        copyCols: [0, 1],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Flavor': { data: 'flavor' },
+          'Power State': { data: 'power_state' },
+          'Clean step': { data: 'clean_step' },
+          'Hardware Manager Version': { data: 'hardware_manager_version' },
+          'Last Agent Heartbeat': { data: 'last_heartbeat' }
+        },
+        el: '#clean-table',
+        panel: $('#clean-panel'),
+        title: 'Cleaning Nodes',
+        sortCols: [1, 'asc'],
+        styles: {
+          0: 'ellip uuid'
+        }
+      });
+
+      // create deploying nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/deploying.json',
+        clipboard: clipboard,
+        copyCols: [0, 1],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Instance UUID': { data: 'instance_uuid' },
+          'Flavor': { data: 'flavor' },
+          'Power State': { data: 'power_state' }
+        },
+        el: '#deploying-table',
+        panel: $('#deploying-panel'),
+        title: 'Deploying Nodes',
+        sortCols: [1, 'asc'],
+        styles: {
+          0: 'ellip uuid',
+          1: 'ellip uuid'
+        }
+      });
+
+      // create maintenance nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/maintenance.json',
+        clipboard: clipboard,
+        copyCols: [0, 1],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Instance UUID': { data: 'instance_uuid' },
+          'Flavor': { data: 'flavor' },
+          'Power State': { data: 'power_state' },
+          'Provision State': { data: 'provision_state' },
+          'Error': { data: 'error' }
+        },
+        el: '#maintenance-table',
+        panel: $('#maintenance-panel'),
+        title: 'Maintenance Nodes',
+        sortCols: [3, 'asc'],
+        styles: {
+          0: 'ellip uuid',
+          1: 'ellip uuid'
+        }
+      });
+
+      // create anomalous nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/anomalous.json',
+        clipboard: clipboard,
+        copyCols: [0, 1],
+        columns: {
+          'Node UUID': { data: 'uuid' },
+          'Instance UUID': { data: 'instance_uuid' },
+          'Flavor': { data: 'flavor' },
+          'Mood': { data: 'mood' },
+          'Provision State': { data: 'provision_state' },
+          'Target Provision State': { data: 'target_provision_state' },
+          'Power State': { data: 'power_state' },
+          'Error': { data: 'error' }
+        },
+        el: '#anomalous-table',
+        panel: $('#anomalous-panel'),
+        title: 'Anomalous Nodes',
+        sortCols: [3, 'asc'],
+        styles: {
+          0: 'ellip uuid',
+          1: 'ellip uuid'
+        }
+      });
+
+      // create capacity nodes table
+      DataTableHelper.create({
+        ajax: '/ajax/' + region + '/capacity.json',
+        columns: {
+          'Flavor': { data: 'flavor' },
+          'Provisioned': { data: 'provisioned' },
+          'Unavailable': { data: 'unavailable' },
+          'Available': { data: 'available' },
+          'Total': { data: 'total' }
+        },
+        el: '#capacity-table',
+        panel: $('#capacity-panel'),
+        title: 'Capacity',
+        sortCols: [1, 'desc']
+      });
+    });
