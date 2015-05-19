@@ -85,6 +85,7 @@ function drawPieChart(moodsData, flavors, conf_moods, conf_flavors) {
     legendTemplate : "<ul class=\"legend\"><% for (var i=0; i<segments.length; i++){%><li><span style=\"background-color:<%=segments[i].fillColor%>\"></span><%if(segments[i].label){%><%=segments[i].label%><%}%></li><%}%></ul>"
   };
 
+
   conf_moods.forEach(function (mood) {
     var moodData = moodsData[mood.name];
     // save space and reduce confusion by only adding data for
