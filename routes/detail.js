@@ -68,6 +68,9 @@ var getNodeDetail = function (res, node, region) {
       last_heartbeat: time_since_heartbeat + 's ago',
       console_enabled: node.console_enabled
     },
+    maintenance: {
+      maintenance_reason: node.maintenance_reason
+    },
     ipmi: {
       ipmi_address: node.driver_info.ipmi_address,
       ipmi_username: node.driver_info.ipmi_username,

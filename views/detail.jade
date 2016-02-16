@@ -106,6 +106,19 @@ block content
     .panel.panel-default
       .panel-heading
         h1.panel-title
+          a(data-toggle="collapse" data-parents="#accordion" href="#maintenance") Maintenance Info
+      #maintenance.panel-collapse.collapse
+        .panel-body
+          div
+            table.table.table-hover
+              tbody
+                tr
+                  td Maintenance Reason
+                  td=maintenance.maintenance_reason
+
+    .panel.panel-default
+      .panel-heading
+        h1.panel-title
           a(data-toggle="collapse" data-parents="#accordion" href="#ipmi") IPMI
       #ipmi.panel-collapse.collapse
         .panel-body

@@ -138,7 +138,8 @@ var SummaryRouter = function (io) {
           flavor: node.flavor,
           power_state: node.power_state,
           provision_state: node.provision_state,
-          error: node.last_error
+          error: node.last_error,
+          maintenance_reason: node.maintenance_reason
         };
 
         // setting the html char code `&nbsp;` will fix datatables being
