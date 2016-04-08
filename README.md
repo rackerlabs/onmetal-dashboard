@@ -2,11 +2,18 @@ ironic-dashboard
 ==============
 Dashboard for monitoring Ironic nodes.
 
+Prerequisite
+==============
+You need:
+* Node JS & NPM
+* Gulp `sudo npm install -g gulp`
+
 Getting Started
 ==============
 
-1. `cp config.sample.js config.js` edit as needed.  The options in config.sample.js are defaults and will be merged into config.js on load (config.js will overwrite if there is a conflict).  Confidential data should be kept in config.js.
-2. `npm start` or `bin/www`
+1. `npm install`
+2. `cp config.sample.js config.js` edit as needed.  The options in config.sample.js are defaults and will be merged into config.js on load (config.js will overwrite if there is a conflict).  Confidential data should be kept in config.js.
+3. `npm start` or `bin/www`
 
 Contributing
 ==============
